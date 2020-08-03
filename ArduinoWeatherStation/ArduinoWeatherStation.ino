@@ -10,6 +10,7 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include "WeatherData.h"
+#include <ArduinoOTA.h>
 
 // Color definitions
 #define BLACK    0x0000
@@ -44,6 +45,8 @@ long weatherDataTimer = 0;
 void setup () {
 
   Serial.begin(115200);
+  Serial.println("setup()");
+  delay(500);
 
   Wire.begin();
 
@@ -54,12 +57,20 @@ void setup () {
   tft.setTextSize(1);
   tft.print("Connecting...");
 
+  char hostString[16] = {0};
+  sprintf(hostString, "ESPWEATHER_%06X", ESP.getChipId());
+  Serial.println(hostString);
+  WiFi.hostname(hostString);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
-    Serial.print("Connecting..");
+    Serial.print("Connecting..\n");
   }
+  
+  ArduinoOTA.setHostname(hostString);
+  ArduinoOTA.begin();
 
   tft.fillScreen(BLACK);
   tft.setCursor(30, 80);
@@ -71,6 +82,7 @@ void setup () {
 }
 
 void loop() {
+  ArduinoOTA.handle();
   if (millis() - weatherDataTimer > 60000) {
     initWeather();
     weatherDataTimer = millis();
