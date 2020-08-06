@@ -197,21 +197,34 @@ void setup () {
   WiFi.hostname(hostString);
   WiFi.mode(WIFI_STA);
   
-  if(wm.autoConnect(hostString)){
-      Serial.println("connected...yeey :)");
-      tft.fillScreen(BLACK);
-      tft.setCursor(30, 80);
-      tft.setTextColor(WHITE);
-      tft.setTextSize(1);
-      //tft.print("Connected");
-  } else {
+  wm.setAPCallback([&](WiFiManager* wifiManager) {
       Serial.println("Configportal running");
       tft.fillScreen(BLACK);
       tft.setCursor(30, 80);
       tft.setTextColor(WHITE);
       tft.setTextSize(1);
-      tft.print("connect to " + String(hostString) + "to configure");
+      tft.print(wifiManager->getConfigPortalSSID() + "/" + WiFi.softAPIP().toString());
+      Serial.printf("Entered config mode:ip=%s, ssid='%s'\n", 
+                        WiFi.softAPIP().toString().c_str(), 
+                        wifiManager->getConfigPortalSSID().c_str());
+  });
+
+  if(!wm.autoConnect(hostString)){
+      Serial.println("failed to connect and hit timeout");
+      delay(3000);
+      //reset and try again, or maybe put it to deep sleep
+      ESP.restart();
+      delay(5000);
+  } else {
+
   }
+
+  Serial.println("connected...yeey :)");
+  tft.fillScreen(BLACK);
+  tft.setCursor(30, 80);
+  tft.setTextColor(WHITE);
+  tft.setTextSize(1);
+  //tft.print("Connected");
   
   ArduinoOTA.setHostname(hostString);
   ArduinoOTA.begin();
@@ -271,6 +284,7 @@ void initWeather() {
     tft.setTextSize(1);
     tft.print("Disconnected");
   } else {
+	tft.fillRect(0, 70, tft.width(), 30, BLACK);
     getWeatherData();
 	if (coord_lat != NULL && coord_lon != NULL)
        getCurrentTimeRequest(coord_lat, coord_lon);
